@@ -69,7 +69,7 @@ async fn test_enter_lottery() {
         processor!(Processor::process),
     );
 
-    let ticket_price = 10 * 10000000000;  // 10 SOL
+    let ticket_price = 1 * 10000000000;  // 1 SOL //need to fetch live price feeds SOL/USD by chainlink
 
     let lottery_account_keypair = Keypair::new();
     let lottery_account_pubkey = lottery_account_keypair.pubkey();
@@ -101,7 +101,7 @@ async fn test_enter_lottery() {
 
     assert_matches!(banks_client.process_transaction(transaction).await, Ok(()));
 
-    // END of copy pasta
+    // /////////////////////////////////
 
     let mut transaction = Transaction::new_with_payer(
         &[
@@ -177,7 +177,7 @@ async fn test_lottery_concludes() {
         processor!(Processor::process),
     );
 
-    let ticket_price = 10 * 10000000000;  // 10 SOL
+    let ticket_price = 1 * 10000000000;  // 1 SOL//need to fetch live price feeds SOL/USD by chainlink
 
     let lottery_account_keypair = Keypair::new();
     let lottery_account_pubkey = lottery_account_keypair.pubkey();
@@ -209,7 +209,7 @@ async fn test_lottery_concludes() {
 
     assert_matches!(banks_client.process_transaction(transaction).await, Ok(()));
 
-    // Iterate 4 different payers, to send to lottery
+    
     for keypair in user_keypairs.iter() {
         let mut transaction = Transaction::new_with_payer(
             &[
@@ -259,10 +259,10 @@ async fn test_lottery_concludes() {
     assert_matches!(banks_client.process_transaction(transaction).await, Ok(()));
 
     let winner_account = banks_client.get_account(lottery_info.winner).await.unwrap().unwrap();
-    assert_eq!(winner_account.lamports, winner_account_lamports + lottery_account_rent + 5 * ticket_price);
+    assert_eq!(winner_account.lamports, winner_account_lamports + lottery_account_rent + entrants * ticket_price);
 }
 
-<!-- #[tokio::test]
-async fn test_lottery_cancel() {
-    // Test a lottery can only be cancelled when there is no other entrant than the initializer or some deal like that
-} -->
+// <!-- #[tokio::test]
+// async fn test_lottery_cancel() {
+//     // Test a lottery can only be cancelled when there is no other entrant than the initializer or some deal like that
+// } -->
