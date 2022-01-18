@@ -67,7 +67,7 @@ impl Processor {
         lottery_info.entrants[0] = *initializer_pubkey;
         // Default remaining entrants
         for entrant in lottery_info.entrants[1..].iter_mut() {
-            *entrant = Pubkey::default(); // Is this default the best way to express not valid?
+            *entrant = Pubkey::default();
         }
 
         Lottery::pack(lottery_info, &mut lottery_account.data.borrow_mut())?;
@@ -120,7 +120,7 @@ impl Processor {
         let clock = &Clock::from_account_info(clock_info)?;
 
         // Write entry in entrants
-        // TODO: Do not allow payer to enter more than once
+        
         let mut entrants_count = 1;
         for entrant in lottery_info.entrants.iter_mut() {
             if *entrant == Pubkey::default() {
@@ -131,7 +131,7 @@ impl Processor {
         }
 
         if entrants_count == ENTRANT_COUNT {
-            let mut hasher = DefaultHasher::new(); // TODO: This is currently predictable, make this random somehow
+            let mut hasher = DefaultHasher::new(); 
             for entrant in lottery_info.entrants.iter_mut() {
                 entrant.hash(&mut hasher);
             }
@@ -168,15 +168,15 @@ impl Processor {
         }
 
         if *winner_account.key != lottery_info.winner  {
-            return Err(ProgramError::InvalidAccountData); // TODO: Better error here?
+            return Err(ProgramError::InvalidAccountData); 
         }
 
         **winner_account.lamports.borrow_mut() = winner_account
             .lamports()
-            .checked_add(lottery_account.lamports())
+            .checked_add(lottery_account.lamports())*(95/100)
             .ok_or(LotteryError::AmountOverflow)?;
         msg!("Closing the lottery account");
-        **lottery_account.lamports.borrow_mut() = 0;
+        **lottery_account.lamports.borrow_mut() = (lottery_account.lamports())*(5/100);
 
         Ok(())
     }
