@@ -12,7 +12,7 @@ pub struct Lottery {
     pub initializer_pubkey: Pubkey,  // Let's get that here for the eventual cancel, or why not the first entrant then?
     pub ticket_price: u64,
     pub winner: Pubkey,
-    pub entrants: [Pubkey; 5], // Let's start with static number of entrants but this could be dynamic given initializer choice, or more sophisticated to be unlimited
+    pub entrants: [Pubkey; 1000000], 
 }
 
 impl Sealed for Lottery {}
@@ -23,7 +23,7 @@ impl IsInitialized for Lottery {
     }
 }
 
-pub const ENTRANT_COUNT:usize = 5;  // We can make this dynamic but that would complexify a fair bit
+pub const ENTRANT_COUNT:usize = 1000000;  
 
 impl Pack for Lottery {
     const LEN: usize = 1 + 32 + 8 + 32 + 32 * ENTRANT_COUNT;
@@ -81,7 +81,7 @@ impl Pack for Lottery {
 
         let mut i = 0;
         entrants_dst.copy_from_slice(&[0u8; 160]);
-        for entrant in entrants.iter() { // TODO: Find better way to perform this business
+        for entrant in entrants.iter() { 
             entrants_dst[i..i+32].copy_from_slice(entrant.as_ref());
             i += 32;
         }
