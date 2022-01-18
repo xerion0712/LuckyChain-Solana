@@ -61,7 +61,7 @@ async fn test_lottery_initialization() {
 #[tokio::test]
 async fn test_enter_lottery() {
     // Create lottery, then get ticket
-    // TODO: Share code with above init test
+    
     let program_id = solanalotto::id();
     let mut pt = ProgramTest::new(
         "solanalotto",
