@@ -50,7 +50,7 @@ pub fn process_instruction(
     accounts: &[AccountInfo], // Public key of the account to read price data from
     _instruction_data: &[u8], // Ignored
 ) -> ProgramResult {
-    msg!("Chainlink Solana Demo program entrypoint");
+    msg!("Chainlink Solana for fetching current SOL/USD price");
 
     let accounts_iter = &mut accounts.iter();
     // This is the account of our our account
@@ -68,8 +68,8 @@ pub fn process_instruction(
     } else {
         msg!("No current price");
     }
-
-     // Store the price ourselves
+    
+    // Store the price ourselves
      let mut price_data_account = PriceFeedAccount::try_from_slice(&my_account.data.borrow())?;
      price_data_account.answer = price.unwrap_or(0);
      price_data_account.serialize(&mut &mut my_account.data.borrow_mut()[..])?;
@@ -77,3 +77,4 @@ pub fn process_instruction(
 
     Ok(())
 }
+
