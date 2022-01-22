@@ -48,14 +48,10 @@ impl<'a> Processor {
         match instruction {
             LotteryInstruction::InitLottery {
                 lottery_id,
-                charity_1,
-                charity_2,
-                charity_3,
-                charity_4,
+                
                 holding_wallet,
                 rewards_wallet,
-                slot_holders_rewards_wallet,
-                sollotto_labs_wallet,
+               
                 randomness_account,
             } => {
                 msg!("Instruction: InitLottery");
