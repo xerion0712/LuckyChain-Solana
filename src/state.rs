@@ -1,89 +1,193 @@
+//! State transition types
+use arrayref::{array_mut_ref, array_ref, array_refs, mut_array_refs};
 use solana_program::{
-    program_pack::{IsInitialized, Pack, Sealed},
     program_error::ProgramError,
+    program_pack::{IsInitialized, Pack, Sealed},
     pubkey::Pubkey,
 };
 
-use arrayref::{array_mut_ref, array_ref, array_refs, mut_array_refs};
-
-#[derive(Debug)]
-pub struct Lottery {
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct LotteryData {
     pub is_initialized: bool,
-    pub initializer_pubkey: Pubkey,  // Let's get that here for the eventual cancel, or why not the first entrant then?
-    pub ticket_price: u64,
-    pub winner: Pubkey,
-    pub entrants: [Pubkey; 1000000], 
+    pub is_finaled: bool,
+    pub lottery_id: u32,
+   
+    pub total_registrations: u32,
+    pub winning_numbers: [u8; 6],
+    pub prize_pool_amount: u64,
+    pub holding_wallet: Pubkey,
+    pub rewards_wallet: Pubkey,
+    
+    pub randomness_account: Pubkey,
 }
 
-impl Sealed for Lottery {}
+impl Sealed for LotteryData {}
 
-impl IsInitialized for Lottery {
+impl IsInitialized for LotteryData {
     fn is_initialized(&self) -> bool {
         self.is_initialized
     }
 }
 
-pub const ENTRANT_COUNT:usize = 1000000;  
+//pre-built
+impl Pack for LotteryData {
+    /// 1 + 1 + 4 + 32 + 32 + 32 + 32 + 4 + 4 + 4 + 4 + 4 + 6 + 8 + 32 + 32 + 32 + 32 + 32 = 296
+    const LEN: usize = 328;
 
-impl Pack for Lottery {
-    const LEN: usize = 1 + 32 + 8 + 32 + 32 * ENTRANT_COUNT;
     fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
-        let src = array_ref![src, 0, 233];
+        let src = array_ref![src, 0, 328];
         let (
             is_initialized,
-            initializer_pubkey,
-            ticket_price_slice,
-            winner_pubkey_slice,
-            entrants_slice
-        ) = array_refs![src, 1, 32, 8, 32, 32 * ENTRANT_COUNT];
+            is_finaled,
+            lottery_id,
+            
+            total_registrations,
+            winning_numbers,
+            prize_pool_amount,
+            holding_wallet,
+            rewards_wallet,
+            
+            randomness_account,
+        ) = array_refs![src, 1, 1, 4, 32, 32, 32, 32, 4, 4, 4, 4, 4, 6, 8, 32, 32, 32, 32, 32];
+
         let is_initialized = match is_initialized {
             [0] => false,
             [1] => true,
             _ => return Err(ProgramError::InvalidAccountData),
         };
 
-        let mut entrants = [Pubkey::default(); ENTRANT_COUNT];
-        for i in 0..ENTRANT_COUNT {
-            entrants[i] = Pubkey::new(&entrants_slice[i*32..(i+1)*32]);
-        }
+        let is_finaled = match is_finaled {
+            [0] => false,
+            [1] => true,
+            _ => return Err(ProgramError::InvalidAccountData),
+        };
 
-        Ok(Lottery {
+        let result = LotteryData {
             is_initialized,
-            initializer_pubkey: Pubkey::new_from_array(*initializer_pubkey),
-            ticket_price: u64::from_le_bytes(*ticket_price_slice),
-            winner: Pubkey::new_from_array(*winner_pubkey_slice),
-            entrants
-        })
+            is_finaled,
+            lottery_id: u32::from_le_bytes(*lottery_id),
+            
+            total_registrations: u32::from_le_bytes(*total_registrations),
+            winning_numbers: *winning_numbers,
+            prize_pool_amount: u64::from_le_bytes(*prize_pool_amount),
+            holding_wallet: Pubkey::new_from_array(*holding_wallet),
+            rewards_wallet: Pubkey::new_from_array(*rewards_wallet),
+            
+            randomness_account: Pubkey::new_from_array(*randomness_account),
+        };
+
+        Ok(result)
     }
 
     fn pack_into_slice(&self, dst: &mut [u8]) {
-        let dst = array_mut_ref![dst, 0, Lottery::LEN];
+        let dst = array_mut_ref![dst, 0, 328];
         let (
             is_initialized_dst,
-            initializer_pubkey_dst,
-            ticket_price_dst,
-            winner_pubkey_dst,
-            entrants_dst,
-        ) = mut_array_refs![dst, 1, 32, 8, 32, 32 * ENTRANT_COUNT];
+            is_finaled_dst,
+            lottery_id_dst,
+           
+            total_registrations_dst,
+            winning_numbers_dst,
+            prize_pool_amount_dst,
+            holding_wallet_dst,
+            rewards_wallet_dst,
+           
+            randomness_account_dst,
+        ) = mut_array_refs![dst, 1, 1, 4, 32, 32, 32, 32, 4, 4, 4, 4, 4, 6, 8, 32, 32, 32, 32, 32];
 
-        let Lottery {
-            is_initialized,
-            initializer_pubkey,
-            ticket_price,
-            winner,
-            entrants
-        } = self;
+        is_initialized_dst[0] = self.is_initialized as u8;
+        is_finaled_dst[0] = self.is_finaled as u8;
+        *lottery_id_dst = self.lottery_id.to_le_bytes();
+        
+        *total_registrations_dst = self.total_registrations.to_le_bytes();
+        *winning_numbers_dst = self.winning_numbers;
+        *prize_pool_amount_dst = self.prize_pool_amount.to_le_bytes();
+        holding_wallet_dst.copy_from_slice(self.holding_wallet.as_ref());
+        rewards_wallet_dst.copy_from_slice(self.rewards_wallet.as_ref());
+        
+        randomness_account_dst.copy_from_slice(self.randomness_account.as_ref());
+    }
+}
 
-        is_initialized_dst[0] = *is_initialized as u8;
-        initializer_pubkey_dst.copy_from_slice(initializer_pubkey.as_ref());
-        *ticket_price_dst = ticket_price.to_le_bytes();
-        winner_pubkey_dst.copy_from_slice(winner.as_ref());
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct TicketData {
+    pub is_purchased: bool,
+    pub charity: Pubkey,
+    pub user_wallet_pk: Pubkey,
+    pub ticket_number_arr: [u8; 6],
+}
 
-        let mut i = 0;
-        entrants_dst.copy_from_slice(&[0u8; 160]);
-        for entrant in entrants.iter() { 
-            entrants_dst[i..i+32].copy_from_slice(entrant.as_ref());
-            i += 32;
-        }
+impl Sealed for TicketData {}
+
+impl Pack for TicketData {
+    /// 1 + 32 + 32 + 1 * 6 = 70
+    const LEN: usize = 71;
+
+    fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
+        let src = array_ref![src, 0, 71];
+        let (is_purchased, charity, user_wallet_pk, ticket_number_arr) =
+            array_refs![src, 1, 32, 32, 6];
+
+        let is_purchased = match is_purchased {
+            [0] => false,
+            [1] => true,
+            _ => return Err(ProgramError::InvalidAccountData),
+        };
+
+        let result = TicketData {
+            is_purchased: is_purchased,
+            charity: Pubkey::new_from_array(*charity),
+            user_wallet_pk: Pubkey::new_from_array(*user_wallet_pk),
+            ticket_number_arr: *ticket_number_arr,
+        };
+
+        Ok(result)
+    }
+
+    fn pack_into_slice(&self, dst: &mut [u8]) {
+        let dst = array_mut_ref![dst, 0, 71];
+        let (is_purchased_dst, charity_dst, user_wallet_pk_dst, ticket_number_arr_dst) =
+            mut_array_refs![dst, 1, 32, 32, 6];
+
+        is_purchased_dst[0] = self.is_purchased as u8;
+        charity_dst.copy_from_slice(self.charity.as_ref());
+        user_wallet_pk_dst.copy_from_slice(self.user_wallet_pk.as_ref());
+        ticket_number_arr_dst.copy_from_slice(self.ticket_number_arr.as_ref());
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct LotteryResultData {
+    pub lottery_id: u32,
+    pub winning_numbers: [u8; 6],
+}
+
+impl Sealed for LotteryResultData {}
+
+impl Pack for LotteryResultData {
+    /// 4 + 6 = 10
+    const LEN: usize = 10;
+
+    fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
+        let src = array_ref![src, 0, 10];
+        let (lottery_id, winning_numbers) = array_refs![src, 4, 6];
+
+        let result = LotteryResultData {
+            lottery_id: u32::from_le_bytes(*lottery_id),
+            winning_numbers: *winning_numbers,
+        };
+
+        Ok(result)
+    }
+
+    fn pack_into_slice(&self, dst: &mut [u8]) {
+        let dst = array_mut_ref![dst, 0, 10];
+        let (lottery_id_dst, winning_numbers_dst) = mut_array_refs![dst, 4, 6];
+
+        *lottery_id_dst = self.lottery_id.to_le_bytes();
+        *winning_numbers_dst = self.winning_numbers;
     }
 }
