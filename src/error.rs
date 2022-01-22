@@ -1,27 +1,44 @@
+//! Error types
+use solana_program::program_error::ProgramError;
 use thiserror::Error;
 
-use solana_program::program_error::ProgramError;
-
+/// Errors that may be returned by the Lottery program.
 #[derive(Error, Debug, Copy, Clone)]
 pub enum LotteryError {
+    
     /// Invalid instruction
     #[error("Invalid Instruction")]
     InvalidInstruction,
     /// Not Rent Exempt
     #[error("Not Rent Exempt")]
     NotRentExempt,
-    /// Ticket Amount Missing
-    #[error("Ticket amount missing")]
-    TicketAmountMissing,
-    /// Expected Amount Mismatch
-    #[error("Expected Amount Mismatch")]
-    ExpectedAmountMismatch,
-    /// Amount Overflow
-    #[error("Amount Overflow")]
-    AmountOverflow,
-    /// Lottery Finished
-    #[error("Lottery Finished")]
-    LotteryFinished,
+    /// Lottery account is not initialized
+    #[error("Lottery account is not initialized")]
+    NotInitialized,
+    /// Lottery account is initialized
+    #[error("Lottery account is initialized")]
+    Initialized,
+    /// Number is invalid
+    #[error("Number is invalid")]
+    InvalidNumber,
+    /// Ticket already purchased
+    #[error("Ticket already purchased")]
+    AlreadyPurchased,
+    /// Invalid participants accounts
+    #[error("Invalid participants accounts")]
+    InvalidParticipantsAccounts,
+    /// Lottery is not finaled
+    #[error("Lottery is not finaled")]
+    NotFinaled,
+    /// Lottery is already finaled
+    #[error("Lottery is already finaled")]
+    IsFinaled,
+    /// Invalid sollotto accounts
+    #[error("Invalid sollotto account")]
+    InvalidSollottoAccount,
+    /// Invalid vrf result
+    #[error("Invalid random result")]
+    InvalidRandomResult,
 }
 
 impl From<LotteryError> for ProgramError {
